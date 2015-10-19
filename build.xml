@@ -1,0 +1,66 @@
+<project name="TestProject" default="run" basedir=".">
+
+    <!-- Solution for git  -->
+    <macrodef name = "git">
+        <attribute name = "command" />
+        <attribute name = "dir" default = "" />
+        <element name = "args" optional = "true" />
+        <sequential>
+            <echo message = "git @{command}" />
+            <exec executable = "git" dir = "@{dir}">
+                <arg value = "@{command}" />
+                <args/>
+            </exec>
+        </sequential>
+    </macrodef>
+
+    <target name="init">
+	<property name="version" value="0.1" />
+	<property name="appname" value="sudoku" />
+    </target>
+    
+    <target name="init.dirs" depends="init">
+	<property name="src.dir" location="${basedir}/sudoku" />
+        <property name="build.dir" location="${basedir}/build/${version}/" />
+        <property name="git.dir" location="${basedir}/sudoku_git/" />
+	<property name="log.dir" location="${basedir}/log/" />
+    </target>
+    
+    <target name="make.dirs" depends="init.dirs">
+	<mkdir dir="${src.dir}"/>
+	<mkdir dir="${build.dir}"/>
+    </target>
+
+    <target name="clone"  depends="make.dirs">
+      <git command = "clone">
+        <args>
+            <arg value = "file://${git.dir}" />
+            <arg value = "${src.dir}" />
+        </args>
+      </git>
+    </target>
+
+    <target name="report.checkstyle"  depends="clone" description="Generate a report of code convention violations.">
+        <taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties"
+          classpath="${basedir}/checkstyle-6.11.2-all.jar"/>
+        <checkstyle config="sun_checks.xml"   failureProperty="checkstyle.failure"
+          failOnViolation="false">
+            <fileset dir="${src.dir}" includes="**/*.java"/>
+            <formatter type="xml" toFile="checkstyle_errors.xml"/>
+        </checkstyle>
+    </target>
+
+    <target name="compile"  depends="report.checkstyle" description="compile the source">
+        <javac srcdir="${src.dir}" destdir="${build.dir}"/>
+    </target>
+
+    <target name="jar" depends="compile">
+        <jar destfile="${basedir}/build/${appname}.jar" basedir="${build.dir}">
+        </jar>
+    </target>
+
+    <target name="run" description="Do the entire build" >
+          <antcall target="jar" />
+    </target>
+
+</project>
